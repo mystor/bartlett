@@ -4,6 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"share/client"
+	"share/server"
+	"sync"
 )
 
 type options struct {
@@ -41,6 +44,19 @@ func parseFlags() options {
 }
 
 func main() {
+	flags := parseFlags()
 
-	fmt.Println(parseFlags())
+	wg := new(sync.WaitGroup)
+
+	if !flags.noclient {
+		wg.Add(1)
+		go client.Run(wg, flags.url, flags.localPort)
+	}
+
+	if flags.server {
+		wg.Add(1)
+		go server.Run(wg, flags.port)
+	}
+
+	wg.Wait()
 }
