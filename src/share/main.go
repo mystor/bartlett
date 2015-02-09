@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"strconv"
 )
 
 type options struct {
@@ -34,7 +35,7 @@ func parseFlags() options {
 		opts.url = flag.Arg(0)
 	} else if flag.NArg() == 0 {
 		opts.server = true
-		opts.url = "localhost:" + fmt.Sprintf("%d", opts.port)
+		opts.url = "localhost:" + strconv.FormatInt(int64(opts.port), 10)
 	}
 
 	return opts
