@@ -1,10 +1,10 @@
 package main
 
 import (
+	"bartlett/client"
+	"bartlett/server"
 	"flag"
 	"log"
-	"share/client"
-	"share/server"
 	"strconv"
 	"sync"
 )
