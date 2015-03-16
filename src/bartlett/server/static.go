@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bartlett/shared"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -15,26 +16,8 @@ const (
 
 var static State
 
-type SyncRequest struct {
-	Added   map[string]File
-	Changed map[string]File
-	Unmod   map[string]File
-}
-
-func NewSyncRequest() *SyncRequest {
-	added := make(map[string]File)
-	changed := make(map[string]File)
-	unmod := make(map[string]File)
-	return &SyncRequest{Changed: changed, Unmod: unmod, Added: added}
-}
-
-type SyncResponse struct {
-	Update map[string]File
-	Delete []string
-}
-
 func Sync(w http.ResponseWriter, r *http.Request) {
-	syncReq := NewSyncRequest()
+	syncReq := shared.NewSyncRequest()
 	err := json.NewDecoder(r.Body).Decode(&syncReq)
 	if err != nil {
 		log.Fatal(err)
@@ -52,8 +35,8 @@ func Sync(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 }
 
-func SyncPoll(syncReq *SyncRequest) SyncResponse {
-	update := make(map[string]File)
+func SyncPoll(syncReq *shared.SyncRequest) shared.SyncResponse {
+	update := make(map[string]shared.File)
 	del := make([]string, 0)
 
 	for key, clientFile := range syncReq.Added {
@@ -95,12 +78,13 @@ func SyncPoll(syncReq *SyncRequest) SyncResponse {
 		}
 	}
 
-	return SyncResponse{Update: update, Delete: del}
+	return shared.SyncResponse{Update: update, Delete: del}
 }
 
+// TODO(michael): Should this ReadRequest be in shared.go?
 type ReadRequest struct {
 	Key    string
-	Target File
+	Target shared.File
 }
 
 func Read(w http.ResponseWriter, r *http.Request) {
@@ -123,8 +107,8 @@ func Read(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 }
 
-func ReadPoll(readReq ReadRequest) File {
-	var target File
+func ReadPoll(readReq ReadRequest) shared.File {
+	var target shared.File
 	for i := 0; i < StaticPollNum; i++ {
 		liveFile, livePrs := live.Files[readReq.Key]
 		if livePrs {

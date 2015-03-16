@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bartlett/shared"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -14,18 +15,8 @@ const (
 
 var live State
 
-type WatchRequest struct {
-	Key    string
-	Target File
-}
-
-type WatchResponse struct {
-	Target File
-	Locked bool
-}
-
 func Watch(w http.ResponseWriter, r *http.Request) {
-	var watchReq WatchRequest
+	var watchReq shared.WatchRequest
 	err := json.NewDecoder(r.Body).Decode(&watchReq)
 	if err != nil {
 		log.Fatal(err)
@@ -43,8 +34,8 @@ func Watch(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 }
 
-func WatchPoll(watchReq WatchRequest) WatchResponse {
-	var target File
+func WatchPoll(watchReq shared.WatchRequest) shared.WatchResponse {
+	var target shared.File
 	var locked bool
 
 	for i := 0; i < LivePollNum; i++ {
@@ -57,16 +48,11 @@ func WatchPoll(watchReq WatchRequest) WatchResponse {
 		}
 	}
 
-	return WatchResponse{Target: target, Locked: locked}
-}
-
-type PushRequest struct {
-	Key     string
-	Updated File
+	return shared.WatchResponse{Target: target, Locked: locked}
 }
 
 func Push(w http.ResponseWriter, r *http.Request) {
-	var pushReq PushRequest
+	var pushReq shared.PushRequest
 	err := json.NewDecoder(r.Body).Decode(&pushReq)
 	if err != nil {
 		log.Fatal(err)
@@ -83,12 +69,8 @@ func Push(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(resp))
 }
 
-type UnlockRequest struct {
-	Key string
-}
-
 func Unlock(w http.ResponseWriter, r *http.Request) {
-	var unlockReq UnlockRequest
+	var unlockReq shared.UnlockRequest
 	err := json.NewDecoder(r.Body).Decode(&unlockReq)
 	if err != nil {
 		log.Fatal(err)

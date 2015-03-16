@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bartlett/shared"
 	"bytes"
 	"crypto/sha1"
 	"encoding/json"
@@ -24,25 +25,6 @@ type CachedFile struct {
 // A cache of files which are on the computer
 var cache map[string]CachedFile
 
-// TODO(michael): These are copied DIRECTLY from server.
-// move them into a common module between the client and the server
-// so that they never get out of sync
-type File struct {
-	Data string // file is stored as string, not bytes
-	Hash string
-}
-
-type SyncRequest struct {
-	Added   map[string]File
-	Changed map[string]File
-	Unmod   map[string]File
-}
-
-type SyncResponse struct {
-	Update map[string]File
-	Delete []string
-}
-
 func shouldAcceptFile(file string) bool {
 	cmd := exec.Command("git", "check-ignore", file)
 	_, err := cmd.CombinedOutput()
@@ -65,7 +47,7 @@ func shouldAcceptFile(file string) bool {
 	return false
 }
 
-func getFileData(file string) File {
+func getFileData(file string) shared.File {
 	fhandle, err := os.Open(file)
 
 	if err != nil {
@@ -79,16 +61,12 @@ func getFileData(file string) File {
 
 	hash := sha1.Sum(data)
 
-	return File{Hash: string(hash[:]), Data: string(data)}
+	return shared.File{Hash: string(hash[:]), Data: string(data)}
 }
 
-func buildSyncRequest(basepath string) SyncRequest {
+func buildSyncRequest(basepath string) *shared.SyncRequest {
 	// Build the sync request
-	request := SyncRequest{
-		Added:   make(map[string]File),
-		Changed: make(map[string]File),
-		Unmod:   make(map[string]File),
-	}
+	request := shared.NewSyncRequest()
 
 	cb := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -117,12 +95,12 @@ func buildSyncRequest(basepath string) SyncRequest {
 		if pres {
 			// It's in the cache
 			if cachedFile.ModTime == mtime {
-				request.Unmod[relPath] = File{Hash: cachedFile.Hash}
+				request.Unmod[relPath] = shared.File{Hash: cachedFile.Hash}
 				return nil
 			} else {
 				file := getFileData(path)
 				if cachedFile.Hash == file.Hash {
-					request.Unmod[relPath] = File{Hash: file.Hash}
+					request.Unmod[relPath] = shared.File{Hash: file.Hash}
 				} else {
 					cachedFile.Hash = file.Hash
 
@@ -155,7 +133,7 @@ func buildSyncRequest(basepath string) SyncRequest {
 	return request
 }
 
-func handleSyncResponse(resp SyncResponse, basepath string) {
+func handleSyncResponse(resp shared.SyncResponse, basepath string) {
 	for fname, file := range resp.Update {
 		// Ensure that the directory is created
 		fullpath := path.Join(basepath, fname)
@@ -207,7 +185,7 @@ func pulse(url string, basepath string) {
 
 	log.Println("Response:", res)
 
-	syncResp := SyncResponse{}
+	var syncResp shared.SyncResponse
 	err = json.NewDecoder(res.Body).Decode(syncResp)
 	res.Body.Close()
 	if err != nil {

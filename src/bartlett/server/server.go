@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bartlett/shared"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -9,12 +10,7 @@ import (
 )
 
 type State struct {
-	Files map[string]File // keys are directory path
-}
-
-type File struct {
-	Data string // file is stored as string, not bytes
-	Hash string
+	Files map[string]shared.File // keys are directory path
 }
 
 func statictest(w http.ResponseWriter, r *http.Request) {
@@ -61,12 +57,12 @@ func Run(wg *sync.WaitGroup, port int) {
 	log.Println("starting server on port", port)
 
 	// static handlers
-	static = State{Files: make(map[string]File)}
+	static = State{Files: make(map[string]shared.File)}
 	http.HandleFunc("/sync", Sync)
 	http.HandleFunc("/read", Read)
 
 	// live handlers
-	live = State{Files: make(map[string]File)}
+	live = State{Files: make(map[string]shared.File)}
 	http.HandleFunc("/watch", Watch)
 	http.HandleFunc("/push", Push)
 	http.HandleFunc("/unlock", Unlock)
