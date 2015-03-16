@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -166,6 +167,7 @@ func handleSyncResponse(resp shared.SyncResponse, basepath string) {
 	}
 
 	for _, fname := range resp.Delete {
+		log.Printf("Deleting:", fname)
 		os.Remove(path.Join(basepath, fname))
 	}
 }
@@ -178,15 +180,16 @@ func pulse(url string, basepath string) {
 		log.Fatal("Error marshaling JSON data for SyncRequest:", err)
 	}
 
-	res, err := http.Post(url, "application/json", bytes.NewReader(js))
+	res, err := http.Post(fmt.Sprintf("http://%s/sync", url), "application/json", bytes.NewReader(js))
 	if err != nil {
 		log.Fatal("Error communicating with server:", err)
 	}
 
-	log.Println("Response:", res)
-
 	var syncResp shared.SyncResponse
-	err = json.NewDecoder(res.Body).Decode(syncResp)
+	err = json.NewDecoder(res.Body).Decode(&syncResp)
+
+	log.Println("Response:", syncResp)
+
 	res.Body.Close()
 	if err != nil {
 		log.Fatal("Error decoding response JSON from server:", err)
@@ -197,6 +200,9 @@ func pulse(url string, basepath string) {
 
 func Run(wg *sync.WaitGroup, url string, localPort int) {
 	defer wg.Done()
+
+	// Create the cache
+	cache = make(map[string]CachedFile)
 
 	log.Println("Started client, connecting to", url, "( localPort =", localPort, ")")
 
