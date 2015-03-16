@@ -1,7 +1,7 @@
 package client
 
 import (
-	"bartlett/shared"
+	"bartlett/data"
 	"bytes"
 	"crypto/sha1"
 	"encoding/json"
@@ -20,7 +20,7 @@ import (
 
 type CachedFile struct {
 	ModTime time.Time
-	Hash    string
+	Hash    [20]byte
 }
 
 // A cache of files which are on the computer
@@ -48,26 +48,26 @@ func shouldAcceptFile(file string) bool {
 	return false
 }
 
-func getFileData(file string) shared.File {
+func getFileData(file string) data.File {
 	fhandle, err := os.Open(file)
 
 	if err != nil {
 		log.Fatal("Error getting file data for file", err)
 	}
 
-	data, err := ioutil.ReadAll(fhandle)
+	body, err := ioutil.ReadAll(fhandle)
 	if err != nil {
 		log.Fatal("Error reading file", err)
 	}
 
-	hash := sha1.Sum(data)
+	hash := sha1.Sum(body)
 
-	return shared.File{Hash: string(hash[:]), Data: string(data)}
+	return data.File{Hash: hash, Data: body}
 }
 
-func buildSyncRequest(basepath string) *shared.SyncRequest {
+func buildSyncRequest(basepath string) *data.SyncRequest {
 	// Build the sync request
-	request := shared.NewSyncRequest()
+	request := data.NewSyncRequest()
 
 	cb := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -96,12 +96,12 @@ func buildSyncRequest(basepath string) *shared.SyncRequest {
 		if pres {
 			// It's in the cache
 			if cachedFile.ModTime == mtime {
-				request.Unmod[relPath] = shared.File{Hash: cachedFile.Hash}
+				request.Unmod[relPath] = data.File{Hash: cachedFile.Hash}
 				return nil
 			} else {
 				file := getFileData(path)
 				if cachedFile.Hash == file.Hash {
-					request.Unmod[relPath] = shared.File{Hash: file.Hash}
+					request.Unmod[relPath] = data.File{Hash: file.Hash}
 				} else {
 					cachedFile.Hash = file.Hash
 
@@ -134,7 +134,7 @@ func buildSyncRequest(basepath string) *shared.SyncRequest {
 	return request
 }
 
-func handleSyncResponse(resp shared.SyncResponse, basepath string) {
+func handleSyncResponse(resp data.SyncResponse, basepath string) {
 	for fname, file := range resp.Update {
 		// Ensure that the directory is created
 		fullpath := path.Join(basepath, fname)
@@ -180,12 +180,17 @@ func pulse(url string, basepath string) {
 		log.Fatal("Error marshaling JSON data for SyncRequest:", err)
 	}
 
-	res, err := http.Post(fmt.Sprintf("http://%s/sync", url), "application/json", bytes.NewReader(js))
+	// TODO(michael): Support https as well as http
+	// (and don't require it to not be in the url passed in)
+	res, err := http.Post(
+		fmt.Sprintf("http://%s/sync", url),
+		"application/json",
+		bytes.NewReader(js))
 	if err != nil {
 		log.Fatal("Error communicating with server:", err)
 	}
 
-	var syncResp shared.SyncResponse
+	var syncResp data.SyncResponse
 	err = json.NewDecoder(res.Body).Decode(&syncResp)
 
 	log.Println("Response:", syncResp)

@@ -1,7 +1,7 @@
 package server
 
 import (
-	"bartlett/shared"
+	"bartlett/data"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -17,7 +17,7 @@ const (
 var static State
 
 func Sync(w http.ResponseWriter, r *http.Request) {
-	syncReq := shared.NewSyncRequest()
+	syncReq := data.NewSyncRequest()
 	err := json.NewDecoder(r.Body).Decode(&syncReq)
 	if err != nil {
 		log.Fatal(err)
@@ -35,8 +35,8 @@ func Sync(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 }
 
-func SyncPoll(syncReq *shared.SyncRequest) shared.SyncResponse {
-	update := make(map[string]shared.File)
+func SyncPoll(syncReq *data.SyncRequest) data.SyncResponse {
+	update := make(map[string]data.File)
 	del := make([]string, 0)
 
 	for key, clientFile := range syncReq.Added {
@@ -78,13 +78,13 @@ func SyncPoll(syncReq *shared.SyncRequest) shared.SyncResponse {
 		}
 	}
 
-	return shared.SyncResponse{Update: update, Delete: del}
+	return data.SyncResponse{Update: update, Delete: del}
 }
 
-// TODO(michael): Should this ReadRequest be in shared.go?
+// TODO(michael): Should this ReadRequest be in data.go?
 type ReadRequest struct {
 	Key    string
-	Target shared.File
+	Target data.File
 }
 
 func Read(w http.ResponseWriter, r *http.Request) {
@@ -107,8 +107,8 @@ func Read(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 }
 
-func ReadPoll(readReq ReadRequest) shared.File {
-	var target shared.File
+func ReadPoll(readReq ReadRequest) data.File {
+	var target data.File
 	for i := 0; i < StaticPollNum; i++ {
 		liveFile, livePrs := live.Files[readReq.Key]
 		if livePrs {

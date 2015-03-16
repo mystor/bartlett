@@ -1,7 +1,7 @@
 package server
 
 import (
-	"bartlett/shared"
+	"bartlett/data"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -16,7 +16,7 @@ const (
 var live State
 
 func Watch(w http.ResponseWriter, r *http.Request) {
-	var watchReq shared.WatchRequest
+	var watchReq data.WatchRequest
 	err := json.NewDecoder(r.Body).Decode(&watchReq)
 	if err != nil {
 		log.Fatal(err)
@@ -34,8 +34,8 @@ func Watch(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 }
 
-func WatchPoll(watchReq shared.WatchRequest) shared.WatchResponse {
-	var target shared.File
+func WatchPoll(watchReq data.WatchRequest) data.WatchResponse {
+	var target data.File
 	var locked bool
 
 	for i := 0; i < LivePollNum; i++ {
@@ -48,11 +48,11 @@ func WatchPoll(watchReq shared.WatchRequest) shared.WatchResponse {
 		}
 	}
 
-	return shared.WatchResponse{Target: target, Locked: locked}
+	return data.WatchResponse{Target: target, Locked: locked}
 }
 
 func Push(w http.ResponseWriter, r *http.Request) {
-	var pushReq shared.PushRequest
+	var pushReq data.PushRequest
 	err := json.NewDecoder(r.Body).Decode(&pushReq)
 	if err != nil {
 		log.Fatal(err)
@@ -70,7 +70,7 @@ func Push(w http.ResponseWriter, r *http.Request) {
 }
 
 func Unlock(w http.ResponseWriter, r *http.Request) {
-	var unlockReq shared.UnlockRequest
+	var unlockReq data.UnlockRequest
 	err := json.NewDecoder(r.Body).Decode(&unlockReq)
 	if err != nil {
 		log.Fatal(err)

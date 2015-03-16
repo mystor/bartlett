@@ -1,12 +1,12 @@
-package shared
+package data
 
 import ()
 
 // TODO(michael): Change data to []byte and hash to [20]byte
 // Basic data storage type
 type File struct {
-	Data string // file is stored as string, not bytes
-	Hash string
+	Data []byte // file is stored as string, not bytes
+	Hash [20]byte
 }
 
 // Static synchronization request types
